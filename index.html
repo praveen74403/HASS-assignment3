@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Assignment3</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- <link rel="stylesheet" type="text/css" href="styles.css"> -->
+</head>
+<body>
+<style>
+  #buttons {
+    display: flex;
+    justify-content: center;
+  }
+  #Intro{
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  color: #333; /* Dark gray color */
+  line-height: 1.5; /* Increase line height for better readability */
+  margin-bottom: 20px; /* Add space between sections */
+  text-align: center; /* Center-align text */
+  }
+  #Conclusion {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  color: #333; /* Dark gray color */
+  line-height: 1.5; /* Increase line height for better readability */
+  margin-bottom: 20px; /* Add space between sections */
+  text-align: left; /* Center-align text */
+
+  }
+
+.button-container {
+  display: flex;
+  justify-content: space-between; /* Space out the buttons evenly */
+  margin-top: 20px; /* Add margin at the top for spacing */
+  width: 80%; /* Set the width of the button container */
+  margin: auto; /* Center the button container horizontally */
+}
+
+button {
+  padding: 10px 20px; /* Add padding to the buttons for spacing */
+}
+
+h1, h2, h3 {
+  margin-top: 0; /* Remove default margin for headings */
+}
+
+p {
+  margin-bottom: 10px; /* Add space between paragraphs */
+  text-align: justify; /* Justify text */
+}
+#plot-container {
+  display: flex;
+  justify-content: center; /* Center the plot horizontally */
+  align-items: center; /* Center the plot vertically */
+  height: 100vh; /* Set the height of the container to the full viewport height */
+}
+#plot {
+  margin: auto; /* Center the plot horizontally */
+}
+</style>
+
+  
+
+
+
+  <div id="Intro">
+    <h1>How does the remaining lease period affect the resale flat price in Bukit Batok, 2023?</h1>
+    <h2>Assignment-3</h2>
+    <h3>Praveen Govindarajan</h3>
+  </div>
+
+  <div id="buttons" class="button-container"></div>
+
+  <div id="plot-container">
+    <div id="plot"></div>
+  </div>
+
+  <div id="Conclusion">
+    <h2>Findings</h2>
+    <ul>
+      <li>All room types showcase a similar trend, with an increase in the lease tenure period demonstrating higher resale value.</li>
+      <li>However, it is notable that there are flats with higher tenure periods yet demonstrating a pricing matching the flat value of lower tenures. For instance, in 5-room flats, the bottom-right points seem to have almost 90+ years in tenure yet have a resale price of just 6000 SGD, matching the top-left (brown points) with almost 30 years of less tenure. This demonstrates that there is some other parameter, maybe a socio-cultural factor, impacting the prices of few flats. </li>
+      <li>Lastly, a cross-verification of the floor area of all flats by simply mapping the floor area to the circle sizes across all categories was conducted. The graph shows no drastic difference in apartment sizes within the same category.</li>
+      
+      <p>NOTE :To improve readability, the different flat types are color-coded and are reviewed separately. The grey dots in the background illustrate all data in the dataset pertaining to the asked question. In addition, the tooltips upon hovering over a point will highlight the flat's location and address.</p>
+    </ul>
+  </div>
+
+  <script>
+    d3.csv("data.csv").then(function(data) {
+      // Extract data from CSV
+      var prices = data.map(d => +d.price);
+      var tenures = data.map(d => +d.tenure);
+      var roomTypes = data.map(d => +d.roomTyp);
+      var blockNums = data.map(d => d.block_num);
+      var blockLocations = data.map(d => d.block_loc);
+      var floorAreas = data.map(d => +d.floorArea);
+
+      // Define a color scale for room types
+      var colorScale = d3.scaleOrdinal()
+        .domain([0, 1, 2, 3, 4, 5])
+        .range(["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]);
+
+      // Main trace for the plot
+      var mainTrace = {
+        x: tenures,
+        y: prices,
+        mode: 'markers',
+        type: 'scatter',
+        marker: {
+          size: 3,
+          color: 'gray',
+          opacity: 0.2
+        },
+        showlegend: false,
+      };
+
+      // Update plot based on selected room type
+      function updatePlot(roomType) {
+        var filteredData = data.filter((_, index) => roomTypes[index] === roomType);
+
+        var trace = {
+          x: filteredData.map(d => d.tenure),
+          y: filteredData.map(d => +d.price),
+          text: filteredData.map((d, index) => `Block Location: ${d.block_loc}<br>Block Number: ${d.block_num}<br>Floor Area: ${d.floorArea}`),
+          mode: 'markers',
+          type: 'scatter',
+          marker: {
+            size: filteredData.map(d => Math.sqrt(+d.floorArea) * 1),
+            color: colorScale(roomType),
+          },
+          showlegend: false,
+        };
+
+        var layout = {
+          title: {
+            text: 'Tenure vs Resale price',
+            font: { size: 25, family: 'Arial, sans-serif', weight: 'bold' },
+          },
+          width: 2000,
+          height: 1200,
+          xaxis: {
+            title: {
+              text: 'Remaining Tenure (yr)',
+              font: { size: 20 },
+            },
+            zeroline: true,
+            showgrid: true,
+            domain: [0.1, 0.9],
+            autorange: false,
+            range: [50, 100],
+            dtick: 5,
+          },
+          yaxis: {
+            title: {
+              text: 'Resale Price (SGD/sqM)',
+              font: { size: 20 },
+            },
+            zeroline: true,
+            showgrid: true,
+            domain: [0, 1],
+            autorange: false,
+            range: [3000, 9000],
+            dtick: 500,
+          },
+        };
+
+        Plotly.newPlot('plot', [ mainTrace, trace ], layout);
+      }
+
+      // Create buttons for each room type
+      var buttons = document.getElementById('buttons');
+      var colors = ["#2ca02c", "#d62728", "#9467bd", "#8c564b", "#1f77b4"];
+
+      [2, 3, 4, 5, 0].forEach(function(roomType, index) {
+        var buttonText = roomType === 0 ? 'Executive' : roomType + ' Room Type';
+        var button = document.createElement('button');
+        button.textContent = buttonText;
+        button.style.backgroundColor = colors[index];
+        button.style.color = 'white';
+        button.addEventListener('click', function() {
+          updatePlot(roomType);
+        });
+        buttons.appendChild(button);
+      });
+
+      updatePlot(0); // Initial plot for roomType 0
+    });
+  </script>
+</body>
+</html>
